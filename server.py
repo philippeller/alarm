@@ -353,10 +353,10 @@ while True:
             dimm = False
 
         if cinema:
-            bed_on = False
+            bed_on = True
             sofa_on = True
             bar_on = True
-            room.set('Bed',on=False)
+            room.set('Bed',on=True,brightness=50,colortemp_k=2500)
             room.set('Sofa',on=True,brightness=50,colortemp_k=2500)
             room.set('Bar',on=True,brightness=50,colortemp_k=2500)
             beamer.on()
