@@ -80,7 +80,6 @@ class lights(object):
 
 daemon = Pyro4.Daemon(host='muffin')
 ns = Pyro4.locateNS()
-ns.list()
 uri = daemon.register(lights())
 ns.register("lights", uri)
 print("server object uri:", uri)
