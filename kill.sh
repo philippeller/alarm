@@ -7,11 +7,3 @@ kill $(ps aux | grep '[/]usr/bin/python ./light_server.py' | awk '{print $2}')
 kill $(ps aux | grep '[/]usr/bin/python ./projector_server.py' | awk '{print $2}')
 kill $(ps aux | grep '[/]usr/bin/python ./relay_server.py' | awk '{print $2}')
 kill $(ps aux | grep '[/]usr/bin/python ./alarm_server.py' | awk '{print $2}')
-sleep 1
-pyro4-ns -n muffin  &
-#spawn servers
-./itunes_server.py &
-./light_server.py &
-./projector_server.py &
-./relay_server.py &
-./alarm_server.py &
