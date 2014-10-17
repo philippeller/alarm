@@ -14,6 +14,14 @@ class lights(object):
         #If running for the first time, press button on bridge and run with b.connect() uncommented
         #self.b.connect()
         self.lights = self._b.get_light_objects()
+        self._names = []
+        for light in self.lights:
+            self._names.append(light.name)
+
+    @Pyro4.expose
+    @property
+    def names(self):
+        return self._names
 
     def set(self, name, **kwargs):
         for key, value in kwargs.iteritems():
