@@ -1,20 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import os,sys
 import Pyro4
-# add ../../Sources to the PYTHONPATH
-sys.path.append(os.path.join("..","..","Sources"))
-from yocto_api import *
-from yocto_relay import *
+
+class dummy(object):
+    def __init__(self):
+        self.state = False
+    def get_state(self):
+        return self.state
+    def set_state(self, val):
+        self.state = val
 
 class relay(object):
     def __init__(self):
-        errmsg=YRefParam()
-        if YAPI.RegisterHub("usb", errmsg)!= YAPI.SUCCESS:
-            sys.exit("init error"+errmsg.value)
-        self.relay = YRelay.FirstRelay()
-        if self.relay is None: sys.exit('no device connected')
-        if not(self.relay.isOnline()):sys.exit('device not connected')
+        self.relay = dummy()
 
     @Pyro4.expose
     @property
@@ -25,9 +23,9 @@ class relay(object):
     @state.setter
     def state(self,val):
         if val:
-            self.relay.set_state(YRelay.STATE_B)
+            self.relay.set_state(False)
         else:
-            self.relay.set_state(YRelay.STATE_A)
+            self.relay.set_state(True)
 
     def switch(self):
         self.state = not self.state

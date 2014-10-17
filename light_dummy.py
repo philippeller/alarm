@@ -1,19 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import Pyro4
-import sys
 import time
-from phue.phue import Bridge
+
+class dummy(object): pass
 
 class lights(object):
 
     def __init__(self):
-        self._b = Bridge('192.168.1.53') # Enter bridge IP here.
-        print self._b
-        #print b.get_api()
-        #If running for the first time, press button on bridge and run with b.connect() uncommented
-        #self.b.connect()
-        self.lights = self._b.get_light_objects()
+        self.lights = [dummy(), dummy(), dummy()]
+        self.lights[0].name = 'Bar'
+        self.lights[1].name = 'Bed'
+        self.lights[2].name = 'Sofa'
+        for light in self.lights:
+            light.on = False
 
     def set(self, name, **kwargs):
         for key, value in kwargs.iteritems():
