@@ -382,32 +382,3 @@ while True:
         time.sleep(1)
     except:
         pass
-    # try:
-    #     inp = raw_input('>> ')
-    #     listinp = inp.split(' ')
-    #     if listinp[0] == '-T':
-    #         theTimer.active = True
-    #         t = Timer(float(listinp[1])*60 ,theTimer.ramp_down)
-    #         t.start()
-    #     if listinp[0] == '-C':
-    #         try:
-    #             t.cancel()
-    #             print 'timer cacled'
-    #         except:
-    #             pass
-    #         if alarm.alarm_set:
-    #             alarm.alarm_set = False
-    #             print 'alarm cacled'
-    #     if listinp[0] == '-A':
-    #         alarm.set_time(listinp[1])
-    #     if listinp[0] == 'on':
-    #         theRelay.power_on()
-    #     if listinp[0] == 'off':
-    #         theRelay.power_off()
-    # except KeyboardInterrupt:
-    #     try:
-    #         t.cancel()
-    #         alarm.stop()
-    #     except:
-    #         pass
-    #     sys.exit(0)

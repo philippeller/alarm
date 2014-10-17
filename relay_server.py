@@ -13,11 +13,8 @@ class relay(object):
         if YAPI.RegisterHub("usb", errmsg)!= YAPI.SUCCESS:
             sys.exit("init error"+errmsg.value)
         self.relay = YRelay.FirstRelay()
-        if self.relay is None: self._die('no device connected')
-        if not(self.relay.isOnline()):self._die('device not connected')
-
-    def _die(msg):
-        sys.exit(msg+' (check USB cable)')
+        if self.relay is None: sys.exit('no device connected')
+        if not(self.relay.isOnline()):sys.exit('device not connected')
 
     @Pyro4.expose
     @property
@@ -32,18 +29,8 @@ class relay(object):
         else:
             self.relay.set_state(YRelay.STATE_A)
 
-
-    def switch_state(self):
-        if self.state:
-            self.relay.set_state(YRelay.STATE_A)
-        else:
-            self.relay.set_state(YRelay.STATE_B)
-
-    def power_off(self):
-        self.relay.set_state(YRelay.STATE_A)
-
-    def power_on(self):
-        self.relay.set_state(YRelay.STATE_B)
+    def switch(self):
+        self.state = not self.state
 
 daemon = Pyro4.Daemon(host='muffin')
 ns = Pyro4.locateNS()
