@@ -24,8 +24,17 @@ class relay(object):
     def state(self):
         return self.relay.get_state()
 
+    @Pyro4.expose
+    @state.setter
+    def state(self,val):
+        if val:
+            self.relay.set_state(YRelay.STATE_B)
+        else:
+            self.relay.set_state(YRelay.STATE_A)
+
+
     def switch_state(self):
-        if self.state > 0:
+        if self.state:
             self.relay.set_state(YRelay.STATE_A)
         else:
             self.relay.set_state(YRelay.STATE_B)
