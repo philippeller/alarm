@@ -119,8 +119,7 @@ class myHandler(BaseHTTPRequestHandler):
             </html> 
             '''%{'message':message,'status_audio':status_audio,'status_Bed':status_Bed,'status_Sofa':status_Sofa,'status_Bar':status_Bar})
             return
-        #except IOError:
-        except:
+        except IOError:
             self.send_error(404,'File Not Found: %s' % self.path)
 
     #Handler for the POST requests
@@ -170,6 +169,16 @@ class myHandler(BaseHTTPRequestHandler):
                     pass
 
 
+            try:
+                with Pyro4.Proxy(uri_relay) as relay:
+                    if (form['audio'].value == "on"):
+                        print relay.state
+                        relay.state = 1
+                    if (form['audio'].value == "off"):
+                        print relay.state
+                        relay.state = 0
+            except KeyError:
+                pass
             #def switch(name,var):
             #    try:
             #        if (form[name].value == "on"):
