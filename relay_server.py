@@ -21,9 +21,7 @@ class relay(object):
     def state(self):
         return self.relay.get_state()
 
-    @Pyro4.expose
-    @state.setter
-    def state(self,val):
+    def set_state(self,val):
         if val:
             self.relay.set_state(YRelay.STATE_B)
         else:

@@ -8,4 +8,7 @@ pyro4-ns -n muffin  &
 ./light_server.py &
 ./projector_server.py &
 ./relay_server.py &
+sleep 1
 ./alarm_server.py &
+sleep 1
+./start_clients.sh

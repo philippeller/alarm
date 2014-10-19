@@ -150,33 +150,86 @@ class myHandler(BaseHTTPRequestHandler):
                 pass
            
             try:
-                with Pyro4.Proxy(uri_lights) as lights:
-                    if (form['lights'].value == "on"):
+                if (form['lights'].value == "on"):
+                    with Pyro4.Proxy(uri_lights) as lights:
                         lights.on()
-                    if (form['lights'].value == "off"):
+                if (form['lights'].value == "off"):
+                    with Pyro4.Proxy(uri_lights) as lights:
                         lights.off()
             except KeyError:
                 pass
 
             for light in ['Bar','Bed','Sofa']:
                 try:
-                    with Pyro4.Proxy(uri_lights) as lights:
-                        if (form[light].value == "on"):
+                    if (form[light].value == "on"):
+                        with Pyro4.Proxy(uri_lights) as lights:
                             lights.on(light)
-                        if (form[light].value == "off"):
+                    if (form[light].value == "off"):
+                        with Pyro4.Proxy(uri_lights) as lights:
                             lights.off(light)
                 except KeyError:
                     pass
 
 
             try:
-                with Pyro4.Proxy(uri_relay) as relay:
-                    if (form['audio'].value == "on"):
-                        print relay.state
-                        relay.state = 1
-                    if (form['audio'].value == "off"):
-                        print relay.state
-                        relay.state = 0
+                if (form['audio'].value == "on"):
+                    with Pyro4.Proxy(uri_relay) as relay:
+                        relay.set_state(True)
+                if (form['audio'].value == "off"):
+                    with Pyro4.Proxy(uri_relay) as relay:
+                        relay.set_state(False)
+            except KeyError:
+                pass
+
+            try:
+                if (form['video'].value == "on"):
+                    with Pyro4.Proxy(uri_projector) as projector:
+                        projector.on()
+                if (form['video'].value == "off"):
+                    with Pyro4.Proxy(uri_projector) as projector:
+                        projector.off()
+            except KeyError:
+                pass
+
+            try:
+                if (form['presets'].value == "dimm"):
+                    with Pyro4.Proxy(uri_lights) as lights:
+                        lights.set(name='all', brightness=100)
+                if (form['presets'].value == "relax"):
+                    with Pyro4.Proxy(uri_lights) as lights:
+                        lights.set_temp(2700)
+                if (form['presets'].value == "work"):
+                    with Pyro4.Proxy(uri_lights) as lights:
+                        lights.set_temp(3500)
+                if (form['presets'].value == "cinema"):
+                    with Pyro4.Proxy(uri_lights) as lights:
+                        lights.set(name='all', brightness=100)
+                    with Pyro4.Proxy(uri_projector) as projector:
+                        projector.on()
+                    with Pyro4.Proxy(uri_relay) as relay:
+                        relay.set_state(True)
+                    with Pyro4.Proxy(uri_itunes) as itunes:
+                        itunes.pause()
+                if (form['presets'].value == "goodnight"):
+                    with Pyro4.Proxy(uri_lights) as lights:
+                        lights.off()
+                    with Pyro4.Proxy(uri_relay) as relay:
+                        relay.set_state(False)
+                    with Pyro4.Proxy(uri_itunes) as itunes:
+                        itunes.pause()
+                if (form['presets'].value == "shutdown"):
+                    with Pyro4.Proxy(uri_lights) as lights:
+                        lights.off()
+                    with Pyro4.Proxy(uri_relay) as relay:
+                        relay.set_state(False)
+                    with Pyro4.Proxy(uri_itunes) as itunes:
+                        itunes.pause()
+                    with Pyro4.Proxy(uri_alarm) as alarm:
+                        alarm.reset()
+                 
+                    
+
+                        
             except KeyError:
                 pass
             #def switch(name,var):
