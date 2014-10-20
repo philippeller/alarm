@@ -22,34 +22,8 @@ class myHandler(BaseHTTPRequestHandler):
     #Handler for the GET requests
     def do_GET(self):
 
-        with Pyro4.Proxy(uri_alarm) as alarm:
-            if not alarm.set:
-                message = 'no alarm set'
-            else:
-                message = 'set to {0}:{1}'.format(*alarm.time)
 
-        with Pyro4.Proxy(uri_relay) as relay:
-            if relay.state:
-                status_audio = 'off'
-            else:
-                status_audio = 'on'
 
-        with Pyro4.Proxy(uri_lights) as lights:
-            Bar_on = lights.any_all('Bar')
-            Bed_on = lights.any_all('Bed')
-            Sofa_on = lights.any_all('Sofa')
-            if Bed_on:
-                status_Bed = 'off'
-            else:
-                status_Bed = 'on'
-            if Sofa_on:
-                status_Sofa = 'off'
-            else:
-                status_Sofa = 'on'
-            if Bar_on:
-                status_Bar = 'off'
-            else:
-                status_Bar = 'on'
 
         try:
             mimetype='text/html'
@@ -68,35 +42,64 @@ class myHandler(BaseHTTPRequestHandler):
             <form method="POST" action="/set">
             <!--Alarm-->
             <table width="320" border="0">
-              <tr>
-                <td colspan="4" bgcolor="#6699FF"><strong>Alarm Clock</strong></td>
-              </tr>
-              <tr>
-                <td bgcolor="#6699FF"><input name="time" type="text" size="5" maxlength="5"/></td>
-                <td bgcolor="#6699FF"><input type="submit" name='alarm' value="set"/></td>
-                <td bgcolor="#6699FF"><input type="submit" name='alarm' value="cancel"/></td>
-                <td bgcolor="#6699FF">%(message)s</td>
-              </tr>
-            <!--Audio/Video-->
-              <tr>
-                <td colspan="4"><strong>Entertainment</strong></td>
-              </tr>
-              <tr>
-                <td>Audio</td>
-                <td><input type="submit" name='audio' value=%(status_audio)s /></td>
-                <td>Video</td>
-                <td><input type="submit" name='video' value="on"/> <input type="submit" name='video' value="off"/></td>
-              </tr>
-            <!--all Light-->
-              <tr>
-                <td colspan="4" bgcolor="#FFFF99"><strong>Lights</strong></td>
-              </tr>
-              <tr>
-                <td bgcolor="#FFFF99">All<br /><input type="submit" name='lights' value="on"/> <input type="submit" name='lights' value="off"/></td>
-                <td bgcolor="#FFFF99">Bed<br /><input type="submit" name='Bed' value=%(status_Bed)s /></td>
-                <td bgcolor="#FFFF99">Sofa<br /><input type="submit" name='Sofa' value=%(status_Sofa)s /></td>
-                <td bgcolor="#FFFF99">Bar<br /> <input type="submit" name='Bar' value=%(status_Bar)s /></td>
-              </tr>
+            ''')
+
+            with Pyro4.Proxy(uri_alarm) as alarm:
+                if not alarm.set:
+                    message = 'no alarm set'
+                else:
+                    message = 'set to {0}:{1}'.format(*alarm.time)
+                self.wfile.write('''
+                  <tr>
+                    <td colspan="4" bgcolor="#6699FF"><strong>Alarm Clock</strong></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#6699FF"><input name="time" type="text" size="5" maxlength="5"/></td>
+                    <td bgcolor="#6699FF"><input type="submit" name='alarm' value="set"/></td>
+                    <td bgcolor="#6699FF"><input type="submit" name='alarm' value="cancel"/></td>
+                    <td bgcolor="#6699FF">%(message)s</td>
+                  </tr>
+                '''%{'message':message})
+
+            with Pyro4.Proxy(uri_relay) as relay:
+                if relay.state:
+                    status_audio = 'off'
+                else:
+                    status_audio = 'on'
+                self.wfile.write('''
+                <!--Audio/Video-->
+                  <tr>
+                    <td colspan="4"><strong>Entertainment</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Audio</td>
+                    <td><input type="submit" name='audio' value=%(status_audio)s /></td>
+                    <td>Video</td>
+                    <td><input type="submit" name='video' value="on"/> <input type="submit" name='video' value="off"/></td>
+                  </tr>
+                '''%{'status_audio':status_audio})
+
+            with Pyro4.Proxy(uri_lights) as lights:
+                names = lights.names
+                statuus = lights.status()
+                self.wfile.write('''
+                <!--all Light-->
+                  <tr>
+                    <td colspan="4" bgcolor="#FFFF99"><strong>Lights</strong></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#FFFF99">All<br /><input type="submit" name='lights' value="on"/> <input type="submit" name='lights' value="off"/></td>
+                ''')
+                for name,status in zip(names,statuus):
+                    if status:
+                        text = 'off'
+                    else:
+                        text = 'on'
+                    self.wfile.write('<td bgcolor="#FFFF99">%(name)s<br /><input type="submit" name=%(name)s value=%(status)s /></td>'%{'name':name,'status':text})
+                self.wfile.write('</tr>')
+
+            self.wfile.write('''
+            <!--presets-->
               <tr>
                 <td colspan="4" bgcolor="#CCCCCC"><strong>Presets</strong></td>
               </tr>
@@ -112,12 +115,14 @@ class myHandler(BaseHTTPRequestHandler):
                 <td bgcolor="#CCCCCC"><input type="submit" name='presets' value="cinema"/></td>
                 <td bgcolor="#CCCCCC"><input type="submit" name='presets' value="shutdown"/></td>
               </tr>
-            </table>
+              ''')
 
+            self.wfile.write('''
+            </table>
             </form>
             </body>
             </html> 
-            '''%{'message':message,'status_audio':status_audio,'status_Bed':status_Bed,'status_Sofa':status_Sofa,'status_Bar':status_Bar})
+            ''')
             return
         except IOError:
             self.send_error(404,'File Not Found: %s' % self.path)
@@ -159,17 +164,16 @@ class myHandler(BaseHTTPRequestHandler):
             except KeyError:
                 pass
 
-            for light in ['Bar','Bed','Sofa']:
-                try:
-                    if (form[light].value == "on"):
-                        with Pyro4.Proxy(uri_lights) as lights:
-                            lights.on(light)
-                    if (form[light].value == "off"):
-                        with Pyro4.Proxy(uri_lights) as lights:
-                            lights.off(light)
-                except KeyError:
-                    pass
-
+            with Pyro4.Proxy(uri_lights) as lights:
+                names = lights.names
+                for name in names:
+                    try:
+                        if (form[name].value == "on"):
+                            lights.on(name)
+                        if (form[name].value == "off"):
+                            lights.off(name)
+                    except KeyError:
+                        pass
 
             try:
                 if (form['audio'].value == "on"):
@@ -197,9 +201,13 @@ class myHandler(BaseHTTPRequestHandler):
                         lights.set(name='all', brightness=100)
                 if (form['presets'].value == "relax"):
                     with Pyro4.Proxy(uri_lights) as lights:
+                        lights.on()
+                        lights.set(name='all', brightness=255)
                         lights.set_temp(2700)
                 if (form['presets'].value == "work"):
                     with Pyro4.Proxy(uri_lights) as lights:
+                        lights.on()
+                        lights.set(name='all', brightness=255)
                         lights.set_temp(3500)
                 if (form['presets'].value == "cinema"):
                     with Pyro4.Proxy(uri_lights) as lights:
