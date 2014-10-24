@@ -1,1 +1,1 @@
-nohup python -u ./driver >> log.txt &
+nohup python -u ./driver.py >> log.txt &
