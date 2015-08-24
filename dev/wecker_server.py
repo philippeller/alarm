@@ -5,6 +5,8 @@ import signal
 import sys
 import random
 import Pyro4
+from threading import Thread
+from time import localtime, strftime
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -152,94 +154,143 @@ class display(object):
         return self._get_char(chars)
 
 
-if __name__ == '__main__':
-
-    from time import localtime, strftime
-    reg = register(27,22,4,17)
-    my_display = display()
-
-    ns = Pyro4.locateNS(host='muffin',port=9090)
-
-    uri_lights = ns.lookup('lights')
-    uri_itunes = ns.lookup('itunes')
-    uri_projector = ns.lookup('projector')
-    uri_alarm = ns.lookup('alarm')
-    uri_relay = ns.lookup('relay')
-
-    r1 = output(9)
-    r2 = output(10)
-
-    GPIO.setup(11, GPIO.IN)
-    GPIO.setup(7, GPIO.IN)
-    GPIO.setup(8, GPIO.IN)
-    GPIO.setup(25, GPIO.IN)
-    GPIO.setup(24, GPIO.IN)
-    GPIO.setup(23, GPIO.IN)
-
-    def hello(channel):
-        print '%s has been pressed'%channel
-
-    def switch(channel):
-        if channel == 11:
-            r1.switch()
-        elif channel == 23:
-            r2.switch()
-
-    def temp(channel):
-        tfile = open("/sys/bus/w1/devices/28-0000039bddd2/w1_slave")
-        text = tfile.read()
-        tfile.close()
-        secondline = text.split("\n")[1]
-        temperaturedata = secondline.split(" ")[9]
-        temperature = float(temperaturedata[2:])
-        temperature = (temperature / 1000) - 3.5
-        if not temperature == 0:
-            num = my_display._get_temp(temperature)
-            reg.set(num)
-
-    def lights(channel):
-        with Pyro4.Proxy(uri_lights) as lights:
-            status = lights.status()
-            if any(status):
-                lights.off()
-            else:
-                lights.on()
+daemon = Pyro4.Daemon(host='cookie')
+ns = Pyro4.locateNS()
 
 
-    bounce = 400
 
-    GPIO.add_event_detect(11, GPIO.RISING, callback=switch, bouncetime=bounce)
-    GPIO.add_event_detect(7, GPIO.RISING, callback=lights, bouncetime=bounce)
-    GPIO.add_event_detect(8, GPIO.RISING, callback=hello, bouncetime=bounce)
-    GPIO.add_event_detect(25, GPIO.RISING, callback=hello, bouncetime=bounce)
-    GPIO.add_event_detect(24, GPIO.RISING, callback=temp, bouncetime=bounce)
-    GPIO.add_event_detect(23, GPIO.RISING, callback=switch, bouncetime=bounce)
+uri_lights = ns.lookup('lights')
+uri_itunes = ns.lookup('itunes')
+uri_projector = ns.lookup('projector')
+uri_alarm = ns.lookup('alarm')
+uri_relay = ns.lookup('relay')
 
-    reg.set(2**40-1)
-    time = '00:00'
-    num = my_display._get_time(time)
-    reg.set(num)  
-    sleep(1)
+r1 = output(9)
+r2 = output(10)
 
-    while True:
-        now = strftime("%H:%M", localtime())
-        if now == time:
-            with Pyro4.Proxy(uri_relay) as relay:
-                if not (relay.state == my_display.sound):
-                    my_display.sound = not(my_display.sound)
-                    num = my_display._get_time(time)
-                    reg.set(num)
-            with Pyro4.Proxy(uri_alarm) as alarm:
-                if not (alarm.set == my_display.alarm):
-                    my_display.alarm = not(my_display.alarm)
-                    num = my_display._get_time(time)
-                    reg.set(num)
-                if not (alarm.snoozing == my_display.snooze):
-                    my_display.snooze = not(my_display.snooze)
-                    num = my_display._get_time(time)
-                    reg.set(num)
-        else:
-            time = now
-            num = my_display._get_time(time)
-            reg.set(num)
+GPIO.setup(11, GPIO.IN)
+GPIO.setup(7, GPIO.IN)
+GPIO.setup(8, GPIO.IN)
+GPIO.setup(25, GPIO.IN)
+GPIO.setup(24, GPIO.IN)
+GPIO.setup(23, GPIO.IN)
+
+
+
+
+class run_display(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+        self.reg = register(27,22,4,17)
+        self.display = display()
+        self.reg.set(2**40-1)
+        self.time = '00:00'
+        num = self.display._get_time(self.time)
+        self.reg.set(num)  
         sleep(1)
+
+    def run(self):
+        while True:
+            now = strftime("%H:%M", localtime())
+            if now == self.time:
+                with Pyro4.Proxy(uri_relay) as relay:
+                    if not (relay.state == self.display.sound):
+                        self.display.sound = not(self.display.sound)
+                        num = self.display._get_time(self.time)
+                        self.reg.set(num)
+                with Pyro4.Proxy(uri_alarm) as alarm:
+                    if not (alarm.set == self.display.alarm):
+                        self.display.alarm = not(self.display.alarm)
+                        num = self.display._get_time(self.time)
+                        self.reg.set(num)
+                    if not (alarm.snoozing == self.display.snooze):
+                        self.display.snooze = not(display.snooze)
+                        num = self.display._get_time(self.time)
+                        self.reg.set(num)
+            else:
+                self.time = now
+                num = self.display._get_time(self.time)
+                self.reg.set(num)
+            sleep(1)
+
+
+class wecker(object):
+    def __init__(self):
+        self.driver = run_display()
+        self.driver.start()
+
+    @Pyro4.expose
+    @property
+    def r1_state(self):
+        return r1.state
+
+    @Pyro4.expose
+    @property
+    def r2_state(self):
+        return r2.state
+
+    def r1i_switch(self):
+        r1.switch()
+
+    def r2_switch(self):
+        r2.switch()
+
+    def get_temp(self, temp):
+        return self.driver.display._get_temp(temp)
+
+    def set_reg(self,num):
+        self.driver.reg.set(num)
+
+uri = daemon.register(wecker())
+ns.register("wecker", uri)
+print("server object uri:", uri)
+print("attributes server running.")
+
+uri_wecker = ns.lookup('wecker')
+
+# --- GPIO callbacks (buttons)
+
+def hello(channel):
+    print '%s has been pressed'%channel
+
+def switch(channel):
+    if channel == 11:
+        r1.switch()
+    elif channel == 23:
+        r2.switch()
+
+def temp(channel):
+    tfile = open("/sys/bus/w1/devices/28-0000039bddd2/w1_slave")
+    text = tfile.read()
+    tfile.close()
+    secondline = text.split("\n")[1]
+    temperaturedata = secondline.split(" ")[9]
+    temperature = float(temperaturedata[2:])
+    temperature = (temperature / 1000) - 3.5
+    if not temperature == 0:
+        with Pyro4.Proxy(uri_wecker) as wecker_obj:
+            num = wecker_obj.get_temp(temperature)
+            wecker_obj.set_reg(num)
+   
+
+def lights(channel):
+    with Pyro4.Proxy(uri_lights) as lights:
+        status = lights.status()
+        if any(status):
+            lights.off()
+        else:
+            lights.on()
+
+
+bounce = 300
+
+GPIO.add_event_detect(11, GPIO.RISING, callback=switch, bouncetime=bounce)
+GPIO.add_event_detect(7, GPIO.RISING, callback=lights, bouncetime=bounce)
+GPIO.add_event_detect(8, GPIO.RISING, callback=hello, bouncetime=bounce)
+GPIO.add_event_detect(25, GPIO.RISING, callback=hello, bouncetime=bounce)
+GPIO.add_event_detect(24, GPIO.RISING, callback=temp, bouncetime=bounce)
+GPIO.add_event_detect(23, GPIO.RISING, callback=switch, bouncetime=bounce)
+
+
+
+daemon.requestLoop()
